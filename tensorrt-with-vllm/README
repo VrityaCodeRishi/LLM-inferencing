@@ -1,0 +1,130 @@
+# Mistral 7B parameter model (Instruction fine tuned) Inferencing on NVIDIA Triton server with vLLM as backend
+
+Serve **Mistral-7B-Instruct** on **NVIDIA Triton Inference Server** using the **vLLM backend**, with model weights downloaded locally from Hugging Face.
+
+---
+
+### Prerequisites
+
+- **Linux + NVIDIA GPU**
+- **NVIDIA driver installed**:
+
+```bash
+nvidia-smi
+```
+
+- **Docker + NVIDIA Container Toolkit** (so `--gpus all` works):
+
+```bash
+docker run --rm --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
+```
+
+- **Docker Compose v2+**:
+
+```bash
+docker compose version
+```
+
+---
+
+### 1) Download the model (Hugging Face)
+
+```bash
+mkdir -p ~/triton-vllm-mistral/hf-models
+python3 -m pip install -U "huggingface_hub[cli]"
+huggingface-cli login
+
+huggingface-cli download mistralai/Mistral-7B-Instruct-v0.3 \
+  --local-dir ~/triton-vllm-mistral/hf-models/Mistral-7B-Instruct-v0.3 \
+  --local-dir-use-symlinks False
+```
+
+---
+
+### 2) Create the Triton model entry (once)
+
+This repo expects the following paths:
+
+- Hugging Face model files at: `~/triton-vllm-mistral/hf-models/Mistral-7B-Instruct-v0.3`
+- Triton model repository at: `~/triton-vllm-mistral/model_repository`
+
+Create the Triton wrapper files:
+
+```bash
+mkdir -p ~/triton-vllm-mistral/model_repository/mistral_vllm/1
+
+cat > ~/triton-vllm-mistral/model_repository/mistral_vllm/config.pbtxt <<'EOF'
+backend: "vllm"
+instance_group [{ count: 1 kind: KIND_MODEL }]
+EOF
+
+cat > ~/triton-vllm-mistral/model_repository/mistral_vllm/1/model.json <<'EOF'
+{
+  "model": "/hf-models/Mistral-7B-Instruct-v0.3",
+  "dtype": "bfloat16",
+  "tensor_parallel_size": 1,
+  "gpu_memory_utilization": 0.95,
+  "max_model_len": 32768
+}
+EOF
+```
+
+---
+
+### 3) Start Triton (Docker Compose)
+
+This project uses a Compose file at `~/docker-compose.yml` that mounts:
+
+- `~/triton-vllm-mistral/model_repository` → `/models`
+- `~/triton-vllm-mistral/hf-models` → `/hf-models`
+
+Start:
+
+```bash
+cd ~
+export TRITON_TAG="25.12-vllm-python-py3"
+docker compose up -d
+docker compose logs -f
+```
+
+Stop:
+
+```bash
+cd ~
+docker compose down
+```
+
+---
+
+### 4) Health checks
+
+```bash
+curl -s localhost:8000/v2/health/ready && echo
+curl -s localhost:8000/v2/models/mistral_vllm && echo
+```
+
+---
+
+### 5) Run inference (HTTP)
+
+Non-streaming:
+
+```bash
+curl -s -X POST localhost:8000/v2/models/mistral_vllm/generate \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "text_input": "<s>[INST] Explain Triton + vLLM in 5 bullets. [/INST]",
+    "parameters": { "stream": false, "temperature": 0.2, "top_p": 0.95, "max_tokens": 200 }
+  }'
+```
+
+Streaming (SSE):
+
+```bash
+curl -N -X POST localhost:8000/v2/models/mistral_vllm/generate_stream \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "text_input": "<s>[INST] Write a short poem about GPUs. [/INST]",
+    "parameters": { "stream": true, "temperature": 0.7, "max_tokens": 120 }
+  }'
+```

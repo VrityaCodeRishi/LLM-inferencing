@@ -1,0 +1,32 @@
+services:
+  triton:
+    image: "nvcr.io/nvidia/tritonserver:${TRITON_TAG:-25.12-vllm-python-py3}"
+    container_name: triton-vllm
+
+    network_mode: host
+
+    gpus: all
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+    shm_size: "4gb"
+    ulimits:
+      memlock: -1
+      stack: 67108864
+
+    environment:
+      - HF_TOKEN
+
+    volumes:
+      - "/home/shadeform/triton-vllm-mistral/model_repository:/models:ro"
+      - "/home/shadeform/triton-vllm-mistral/hf-models:/hf-models:ro"
+      - "/home/shadeform/.cache/huggingface:/root/.cache/huggingface"
+
+    command: ["tritonserver", "--model-repository=/models"]
+    restart: unless-stopped
