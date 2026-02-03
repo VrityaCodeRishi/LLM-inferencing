@@ -1,0 +1,20 @@
+services:
+  vllm:
+    image: vllm/vllm-openai:v0.14.1-cu130 # Change the image as per your driver. I used this with Driver Version: 580.126.09     CUDA Version: 13.0
+    command:
+      [
+        "mistralai/Mistral-7B-Instruct-v0.2",
+        "--dtype",
+        "bfloat16",
+        "--max-model-len",
+        "8192"
+      ]
+    network_mode: host # On the Brev instance docker bridge was not resolving host name so needed to use host network
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+    volumes:
+      - ${HOME}/.cache/huggingface:/root/.cache/huggingface
+      - ./gai.conf:/etc/gai.conf:ro
+    ipc: host
+    gpus: all
+    restart: unless-stopped

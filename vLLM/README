@@ -1,0 +1,70 @@
+## vLLM on Docker Compose (OpenAI-compatible server)
+
+This repo starts a local **vLLM OpenAI-compatible API server** (default port `8000`) and includes a small Python client.
+
+### Prereqs
+
+- **NVIDIA driver + NVIDIA Container Toolkit** installed (so Docker can use `--gpus all`)
+- Docker + Docker Compose
+- Python 3 (for `client.py`)
+
+### 1) Set your Hugging Face token (HF_TOKEN)
+
+You can either export it in your shell:
+
+```bash
+export HF_TOKEN="hf_..."
+```
+
+Or create a `.env` file next to `docker-compose.yml`:
+
+```bash
+HF_TOKEN=hf_...
+```
+
+### 2) Start vLLM
+
+```bash
+docker compose up -d
+```
+
+Wait until it’s ready:
+
+```bash
+curl -sS http://localhost:8000/v1/models
+```
+
+Tail logs if needed:
+
+```bash
+docker logs -f shadeform-vllm-1
+```
+
+### 3) Install client deps
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 4) Run a request
+
+Python client:
+
+```bash
+python3 client.py
+```
+
+Or a curl-based request:
+
+```bash
+bash curl.sh
+```
+
+### Notes / Troubleshooting
+
+- **Why `network_mode: host`?** On some locked-down VMs, Docker bridge traffic is blocked by firewall rules (often via the `DOCKER-USER` chain). This repo uses host networking so the container reuses the host’s working DNS/egress.
+- **Model cache mount**: `~/.cache/huggingface` is mounted into the container so model downloads persist across restarts.
+- **Image tag**: `docker-compose.yml` pins `vllm/vllm-openai:v0.14.1-cu130` because some `:nightly` tags can drift and break CUDA/driver compatibility.
+
