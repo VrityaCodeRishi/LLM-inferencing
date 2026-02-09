@@ -1,4 +1,4 @@
-# Script generated from Claude to compare the performance of different quantization methods,
+# Script generated from Claude to compare the performance of different quantization methods.
 """
 COMPLETE QUANTIZATION BENCHMARK - DUAL MODEL COMPARISON
 Uses TWO models to show all quantization methods:
