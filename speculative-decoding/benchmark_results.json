@@ -1,0 +1,82 @@
+{
+  "gpu": "NVIDIA H100 80GB HBM3",
+  "main_model": "Qwen/Qwen2.5-72B-Instruct",
+  "draft_model": "Qwen/Qwen2.5-7B-Instruct",
+  "max_new_tokens": 256,
+  "num_runs": 3,
+  "baseline": [
+    {
+      "prompt_snippet": "Explain how transformers work in deep learning, focusing on the self-a",
+      "avg_latency_s": 21.899,
+      "p50_latency_s": 21.858,
+      "avg_tokens_per_sec": 11.69,
+      "tokens_generated": 256
+    },
+    {
+      "prompt_snippet": "Write a Python implementation of a red-black tree with insert and sear",
+      "avg_latency_s": 22.04,
+      "p50_latency_s": 22.002,
+      "avg_tokens_per_sec": 11.62,
+      "tokens_generated": 256
+    },
+    {
+      "prompt_snippet": "What are the philosophical implications of the Turing test for machine",
+      "avg_latency_s": 21.369,
+      "p50_latency_s": 21.019,
+      "avg_tokens_per_sec": 11.99,
+      "tokens_generated": 256
+    },
+    {
+      "prompt_snippet": "Describe the step-by-step process of mRNA vaccine development and how ",
+      "avg_latency_s": 22.272,
+      "p50_latency_s": 22.181,
+      "avg_tokens_per_sec": 11.49,
+      "tokens_generated": 256
+    },
+    {
+      "prompt_snippet": "Analyse the macroeconomic causes and effects of the 2008 global financ",
+      "avg_latency_s": 22.034,
+      "p50_latency_s": 22.018,
+      "avg_tokens_per_sec": 11.62,
+      "tokens_generated": 256
+    }
+  ],
+  "speculative_decoding": [
+    {
+      "prompt_snippet": "Explain how transformers work in deep learning, focusing on the self-a",
+      "avg_latency_s": 14.788,
+      "p50_latency_s": 14.786,
+      "avg_tokens_per_sec": 17.31,
+      "tokens_generated": 256
+    },
+    {
+      "prompt_snippet": "Write a Python implementation of a red-black tree with insert and sear",
+      "avg_latency_s": 10.823,
+      "p50_latency_s": 10.797,
+      "avg_tokens_per_sec": 23.65,
+      "tokens_generated": 256
+    },
+    {
+      "prompt_snippet": "What are the philosophical implications of the Turing test for machine",
+      "avg_latency_s": 19.843,
+      "p50_latency_s": 19.867,
+      "avg_tokens_per_sec": 12.9,
+      "tokens_generated": 256
+    },
+    {
+      "prompt_snippet": "Describe the step-by-step process of mRNA vaccine development and how ",
+      "avg_latency_s": 19.067,
+      "p50_latency_s": 19.002,
+      "avg_tokens_per_sec": 13.43,
+      "tokens_generated": 256
+    },
+    {
+      "prompt_snippet": "Analyse the macroeconomic causes and effects of the 2008 global financ",
+      "avg_latency_s": 19.088,
+      "p50_latency_s": 19.171,
+      "avg_tokens_per_sec": 13.41,
+      "tokens_generated": 256
+    }
+  ],
+  "avg_speedup_x": 1.383
+}
