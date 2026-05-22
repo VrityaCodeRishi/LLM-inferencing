@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  sglang:
+    image: lmsysorg/sglang:v0.4.6.post3-cu126
+    container_name: sglang-server
+    ports:
+      - "30000:30000"
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+    ipc: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    shm_size: "32g"
+    command: >
+      python3 -m sglang.launch_server
+      --model-path mistralai/Mistral-7B-Instruct-v0.3
+      --served-model-name default
+      --host 0.0.0.0
+      --port 30000
+      --enable-metrics
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:30000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
