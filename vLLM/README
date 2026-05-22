@@ -1,70 +1,98 @@
-## vLLM on Docker Compose (OpenAI-compatible server)
+## vLLM Inference — Mistral-7B-Instruct-v0.2
 
-This repo starts a local **vLLM OpenAI-compatible API server** (default port `8000`) and includes a small Python client.
+Serve **Mistral-7B-Instruct-v0.2** using vLLM's OpenAI-compatible API server. Includes a Python client and a benchmark script.
 
-### Prereqs
+### Files
 
-- **NVIDIA driver + NVIDIA Container Toolkit** installed (so Docker can use `--gpus all`)
-- Docker + Docker Compose
-- Python 3 (for `client.py`)
+| File | Purpose |
+|---|---|
+| `client_vllm_openai.py` | OpenAI SDK client that sends a chat request to vLLM |
+| `benchmark_vllm.py` | Measures TTFT, TPOT, throughput across prompt sizes and concurrency |
+| `docker-compose.vllm.yml` | Docker Compose setup (for environments with Docker + NVIDIA Container Toolkit) |
+| `smoke_test.sh` | Quick curl-based health check |
+| `benchmark_results.png` | Benchmark results chart (Mistral-7B on L4) |
 
-### 1) Set your Hugging Face token (HF_TOKEN)
+---
 
-You can either export it in your shell:
+### Option A: Native install (JarvisLabs / any GPU server)
+
+```bash
+pip install vllm openai
+```
+
+Start the server:
+
+```bash
+vllm serve mistralai/Mistral-7B-Instruct-v0.2 \
+  --dtype bfloat16 \
+  --max-model-len 8192 \
+  --enable-prefix-caching \
+  --gpu-memory-utilization 0.90 \
+  --host 0.0.0.0 \
+  --port 8000
+```
+
+### Option B: Docker Compose
+
+Requires NVIDIA driver + NVIDIA Container Toolkit.
 
 ```bash
 export HF_TOKEN="hf_..."
+docker compose -f docker-compose.vllm.yml up -d
 ```
 
-Or create a `.env` file next to `docker-compose.yml`:
-
-```bash
-HF_TOKEN=hf_...
-```
-
-### 2) Start vLLM
-
-```bash
-docker compose up -d
-```
-
-Wait until it’s ready:
+Wait until ready:
 
 ```bash
 curl -sS http://localhost:8000/v1/models
 ```
 
-Tail logs if needed:
+---
 
-```bash
-docker logs -f shadeform-vllm-1
-```
-
-### 3) Install client deps
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-### 4) Run a request
+### Sending requests
 
 Python client:
 
 ```bash
-python3 client.py
+pip install -r requirements.txt
+python3 client_vllm_openai.py
 ```
 
-Or a curl-based request:
+Smoke test:
 
 ```bash
-bash curl.sh
+bash smoke_test.sh
 ```
 
-### Notes / Troubleshooting
+Environment variables:
+- `VLLM_BASE_URL` — server URL (default: `http://localhost:8000/v1`)
+- `VLLM_MODEL` — model name (default: `mistralai/Mistral-7B-Instruct-v0.2`)
 
-- **Why `network_mode: host`?** On some locked-down VMs, Docker bridge traffic is blocked by firewall rules (often via the `DOCKER-USER` chain). This repo uses host networking so the container reuses the host’s working DNS/egress.
-- **Model cache mount**: `~/.cache/huggingface` is mounted into the container so model downloads persist across restarts.
-- **Image tag**: `docker-compose.yml` pins `vllm/vllm-openai:v0.14.1-cu130` because some `:nightly` tags can drift and break CUDA/driver compatibility.
+---
 
+### Benchmark
+
+```bash
+pip install httpx matplotlib
+python3 benchmark_vllm.py
+```
+
+Measures TTFT, TPOT, tokens/sec across 4 prompt sizes (tiny/short/medium/long) and concurrency levels (1/2/4). Pulls server-side metrics from `/metrics` and generates a plot.
+
+Results on **NVIDIA L4 (24GB)** with vLLM v0.21.0:
+
+| Metric | Value |
+|---|---|
+| TTFT | 106–148 ms |
+| TPOT | ~56 ms/token |
+| Single-request throughput | ~17.8 tok/s |
+| Peak throughput (4 concurrent) | ~68 tok/s |
+| Prefix cache hit rate | 64.7% |
+
+---
+
+### Notes
+
+- **`gai.conf`**: Mounted into Docker to prefer IPv4 over IPv6 (avoids DNS resolution failures in some container environments).
+- **Docker image tag**: `docker-compose.vllm.yml` pins `vllm/vllm-openai:v0.14.1-cu130`. Match the `-cu` suffix to your CUDA driver version.
+- **L4 VRAM budget**: Mistral-7B in bfloat16 uses ~13.5 GiB, leaving ~5.5 GiB for KV cache (~44K tokens, ~5 concurrent 8K-context requests).
