@@ -1,0 +1,1 @@
+python -m sglang.bench_serving --backend sglang --host localhost --port 30000 --num-prompts 30 --request-rate 5 --dataset-name random --random-input-len 256 --random-output-len 128
